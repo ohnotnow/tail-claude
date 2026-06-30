@@ -5,16 +5,7 @@ session log, renders Claude's surfaced output nicely, and flags the moments
 where a session is sliding into confident, no-brakes momentum — so you can step
 in (or hand it to a fresh-eyes reviewer) before something slips through.
 
-```
-🐱 Top Cat                                                          ● live
-⚠ brake-drought: 8 turns — glance / fresh eyes?   a nudge to glance, never a verdict
-17:35 ▸ Right, let's build the…  │  ## What I've done
-17:36 · I'll start with the read… │
-17:38 ▸ sounds good, go for it    │  Wired up the parser and it all works — the good
-17:41 · Done — the core works,…   │  news is the tests are green and nothing's loose 🎉
-…                                 │  …
-↑/↓ navigate · tab → reading pane · a follow · q quit
-```
+![Screenshot](screenshot.png)
 
 ## Why this exists
 
