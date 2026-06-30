@@ -1,0 +1,47 @@
+# Top Cat (tc) configuration — OPTIONAL.
+#
+# tc ships with sensible defaults baked in and is fully useful with no config
+# file at all. This file just lets you tune the signals.
+#
+# To use it:  copy to ~/.config/tc/config.yaml  and edit.
+#   mkdir -p ~/.config/tc && cp config.yaml.example ~/.config/tc/config.yaml
+#
+# SEMANTICS: any list you provide REPLACES the corresponding default (it is not
+# merged). That's why this example lists the full defaults — start from here and
+# add/remove to taste. Anything you leave out keeps its baked-in default.
+
+# How many assistant turns without a brake-word before the meter goes red.
+# The danger is a word-quiet session that just rolls smoothly, so this tracks
+# the ABSENCE of brakes rather than the presence of alarming language.
+drought_threshold: 6
+
+# PRIMARY signal. Phrases that count as "braking" — genuine self-correction or a
+# pause to verify. Matched case-insensitively; whole words only.
+#
+# Note what is NOT here: "actually". Across 127 real sessions it was 77% of all
+# brake hits yet is a discourse marker that often appears INSIDE confident prose
+# ("here's what I actually found"). Including it makes the meter lie. Add it back
+# only if you really want to.
+brake_words:
+  - wait
+  - hold on
+  - should we
+  - let me verify
+  - let me check
+  - before we
+  - correction
+  - i'm not sure
+  - i was wrong
+  - hmm
+
+# SECONDARY signal. Phrases highlighted inline in the reading pane as
+# attention-directors — the smug-momentum tells. These are NEVER a detector and
+# their absence is NEVER an all-clear; they just make the eye land on them.
+doom_words:
+  - the good news is
+  - should be fine
+  - will get caught
+  - nothing loose
+  - powering on
+  - all green
+  - "🎉"

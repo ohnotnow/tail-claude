@@ -1,0 +1,9 @@
+/tc
+/tail-claude
+/tc-linux
+/tc-macos
+*.exe
+.env
+.ait/
+.ant/
+TAIL_CLAUDE_PRD.md
