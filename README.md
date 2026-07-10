@@ -5,7 +5,8 @@ session log, renders Claude's surfaced output nicely, and flags the moments
 where a session is sliding into confident, no-brakes momentum — so you can step
 in (or hand it to a fresh-eyes reviewer) before something slips through.
 
-![Screenshot](screenshot.png)
+![TUI Screenshot](screenshot.png)
+![Web Screenshot](screenshot_web.png)
 
 ## Why this exists
 
