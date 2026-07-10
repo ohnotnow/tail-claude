@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🐱 Top Cat</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐱</text></svg>">
+<style>
+  /* Nord palette — mirror of theme/nord.go. --muted is the Nord editors'
+     "comment" tone (#616e88) rather than Nord3: at browser text sizes Nord3
+     on Nord0 is illegibly low-contrast, and the caveat line must stay
+     readable — it is load-bearing. */
+  :root {
+    --bg: #2e3440; --bg-alt: #3b4252; --bg-hl: #434c5e; --line: #4c566a;
+    --fg: #d8dee9; --muted: #616e88;
+    --accent: #88c0d0; --green: #a3be8c; --yellow: #ebcb8b; --red: #bf616a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column;
+  }
+
+  header {
+    display: flex; align-items: baseline; gap: 1rem;
+    padding: .55rem .9rem; border-bottom: 1px solid var(--line);
+    background: var(--bg-alt); flex: none; min-width: 0;
+  }
+  header .title { color: var(--accent); font-weight: 700; white-space: nowrap; }
+  header .session {
+    color: var(--muted); font-size: .8rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #meter { font-size: .85rem; color: var(--green); margin-left: auto; white-space: nowrap; }
+  #meter.warn { color: var(--red); font-weight: 700; }
+  /* Always on screen so a red meter is never read as a verdict, nor a green
+     one as an all-clear — same rule as the TUI header (PRD §5). */
+  header .caveat { color: var(--muted); font-size: .8rem; white-space: nowrap; }
+  #follow {
+    font: inherit; font-size: .85rem; border: 1px solid var(--line);
+    border-radius: 4px; background: none; color: var(--green);
+    padding: .1rem .55rem; white-space: nowrap; cursor: default;
+  }
+  #follow.paused { color: var(--yellow); cursor: pointer; }
+  #follow.dead { color: var(--red); }
+
+  .layout { display: flex; flex: 1; min-height: 0; }
+  nav {
+    width: 320px; flex: none; overflow-y: auto; padding: .4rem 0;
+    border-right: 1px solid var(--line); font-size: .82rem;
+  }
+  nav a {
+    display: block; padding: .12rem .75rem; text-decoration: none;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  nav a .t { color: var(--muted); margin-right: .35rem; }
+  nav a.you { color: var(--accent); }
+  nav a.claude { color: var(--fg); }
+  nav a.tool { color: var(--yellow); }
+  nav a.active { background: var(--accent); }
+  nav a.active, nav a.active .t { color: var(--bg); font-weight: 700; }
+
+  /* Focusable (and focused on load) so PageUp/PageDown/arrows scroll it. The
+     pane is the app's primary surface — no focus ring, like a document body. */
+  main { flex: 1; overflow-y: auto; padding: 1rem 1.4rem 2rem; outline: none; }
+  /* The #bottom sentinel is always present, so "no messages yet" means it is
+     the only child. */
+  #bottom:only-child::before { content: "waiting for messages…"; color: var(--muted); }
+
+  article {
+    max-width: 58rem; margin: 0 0 1.1rem;
+    border-left: 3px solid transparent; padding: .2rem 0 .2rem 1rem;
+    scroll-margin-top: .75rem;
+    /* Long sessions: skip layout/paint of off-screen messages.
+       ⚠ KNOWN EDGE CASE: browsers have repeatedly shipped regressions where
+       content-visibility:auto makes scrolling SLOWER, then fixed it, then
+       regressed again (h/t Wes Bos on Syntax FM). If scrolling ever crawls
+       unexpectedly, suspect these two lines first and try removing them. */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 8rem;
+  }
+  article.you { border-left-color: var(--accent); }
+  article.tool { border-left-color: var(--yellow); }
+  article.claude { border-left-color: var(--line); }
+  article:target { animation: flash 1.6s ease-out; }
+  @keyframes flash {
+    0%, 40% { background: var(--bg-hl); }
+    100% { background: transparent; }
+  }
+
+  article .head {
+    font-size: .75rem; color: var(--muted);
+    letter-spacing: .04em; margin-bottom: .15rem;
+  }
+  article.you .head { color: var(--accent); }
+  article.tool .head { color: var(--yellow); }
+
+  .body :first-child { margin-top: 0; }
+  .body :last-child { margin-bottom: 0; }
+  .body h1, .body h2, .body h3, .body h4 { color: var(--accent); line-height: 1.25; }
+  .body h1 { font-size: 1.25rem; }
+  .body h2 { font-size: 1.15rem; }
+  .body h3 { font-size: 1.05rem; }
+  .body h4 { font-size: 1rem; }
+  .body a { color: var(--accent); }
+  .body code {
+    font: .86em ui-monospace, "SF Mono", Menlo, monospace;
+    background: var(--bg-alt); border-radius: 3px; padding: .1em .3em;
+  }
+  .body pre {
+    background: var(--bg-alt); border-radius: 6px;
+    padding: .7rem .9rem; overflow-x: auto;
+  }
+  .body pre code { background: none; padding: 0; }
+  .body blockquote {
+    border-left: 3px solid var(--line); margin-left: 0;
+    padding-left: .9rem; color: var(--muted);
+  }
+  .body table { border-collapse: collapse; display: block; overflow-x: auto; }
+  .body th, .body td { border: 1px solid var(--line); padding: .25rem .6rem; }
+  .body th { background: var(--bg-alt); }
+  .body hr { border: none; border-top: 1px solid var(--line); }
+  .body img { max-width: 100%; }
+
+  pre.diff { line-height: 1.4; }
+  pre.diff .del { color: var(--red); }
+  pre.diff .add { color: var(--green); }
+
+  /* Doom-words: attention-directors, never a detector (PRD §5). */
+  mark { background: var(--yellow); color: var(--bg); padding: 0 .1em; border-radius: 2px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="title">🐱 Top Cat</span>
+  <span class="session" id="session"></span>
+  <span id="meter">brake-drought: –</span>
+  <span class="caveat">a nudge to glance — never a verdict</span>
+  <button id="follow">● live</button>
+</header>
+<div class="layout">
+  <nav id="sidebar"></nav>
+  <!-- #bottom is a permanent sentinel: articles are inserted before it, and
+       "follow the tail" means keeping it in view. #feed exists so one
+       ResizeObserver can watch the content height — it grows both on append
+       and when content-visibility placeholders resolve to real heights. -->
+  <main id="timeline" tabindex="0"><div id="feed"><div id="bottom"></div></div></main>
+</div>
+
+<script>
+"use strict";
+const timeline = document.getElementById("timeline");
+const sidebar = document.getElementById("sidebar");
+const meterEl = document.getElementById("meter");
+const followBtn = document.getElementById("follow");
+const bottomEl = document.getElementById("bottom");
+const feed = document.getElementById("feed");
+
+const state = { doom: [], threshold: 6, following: true, connected: false };
+
+// --- SSE plumbing -----------------------------------------------------------
+// The server replays the whole session on connect, then streams live appends.
+// EventSource reconnects by itself (laptop sleep etc.) and sends Last-Event-ID
+// so the server resumes instead of replaying — no duplicate handling needed.
+
+const es = new EventSource("/events");
+
+es.addEventListener("config", e => {
+  const c = JSON.parse(e.data);
+  state.threshold = c.threshold;
+  // No "u" flag: Go's regexp.QuoteMeta emits identity escapes (e.g. \!) that
+  // JavaScript's unicode mode rejects. Plain "gi" accepts them, and \b means
+  // the same thing in both engines.
+  state.doom = c.doomPatterns.map(p => new RegExp(p, "gi"));
+  document.getElementById("session").textContent = c.session;
+});
+es.addEventListener("append", e => addMessage(JSON.parse(e.data)));
+es.addEventListener("meter", e => setMeter(JSON.parse(e.data).drought));
+es.addEventListener("reload", () => location.reload());
+es.onopen = () => { state.connected = true; renderMode(); };
+es.onerror = () => { state.connected = false; renderMode(); };
+
+timeline.focus(); // keyboard scrolling works immediately
+
+// --- timeline & sidebar -----------------------------------------------------
+
+function addMessage(p) {
+  const art = document.createElement("article");
+  art.id = "m" + p.i;
+  art.className = p.kind;
+
+  const head = document.createElement("div");
+  head.className = "head";
+  head.textContent = p.time + "  " + p.head;
+
+  const body = document.createElement("div");
+  body.className = "body";
+  body.innerHTML = p.html; // server-rendered; goldmark drops raw HTML from messages
+  if (p.kind !== "tool") highlightDoom(body);
+
+  art.append(head, body);
+  feed.insertBefore(art, bottomEl);
+
+  const a = document.createElement("a");
+  a.href = "#m" + p.i;
+  a.className = p.kind;
+  const t = document.createElement("span");
+  t.className = "t";
+  t.textContent = p.time;
+  a.append(t, document.createTextNode(p.side));
+  // Clicking an entry means "read this" — put focus back on the reading pane
+  // so PageUp/PageDown keep working. The anchor's default action moves focus
+  // to the target/body AFTER this handler (with no hashchange when the hash
+  // is unchanged), so the refocus is deferred to land behind it.
+  a.addEventListener("click", () => {
+    setActive(a);
+    noteIntent();
+    setTimeout(() => timeline.focus(), 0);
+  });
+  sidebar.append(a);
+
+  if (state.following) {
+    setActive(a);
+    pinBottom();
+    sidebar.scrollTop = sidebar.scrollHeight;
+  }
+}
+
+function setActive(a) {
+  const cur = sidebar.querySelector("a.active");
+  if (cur) cur.classList.remove("active");
+  a.classList.add("active");
+}
+
+// --- live-follow ------------------------------------------------------------
+// Following means "you are at (or within a line of) the bottom", and a new
+// message must never yank the view while you read history — same rule as the
+// TUI's scroll-lock (and less +F). Scrolling back down resumes by itself.
+//
+// Only real user input may flip the follow state. Bare 'scroll' events are
+// unreliable evidence: scroll anchoring and content-visibility layout shifts
+// fire them too, and those must never pause (or resume) the follow. Known,
+// accepted gap: a find-in-page jump isn't seen as input, so the next live
+// append pulls the view back to the tail.
+
+// Pin to the container's true bottom (scrollHeight includes the padding below
+// the feed); scrollIntoView on the sentinel would stop just above it, outside
+// the atBottom slack, and the first wheel-nudge at the tail would then pause.
+function pinBottom() {
+  timeline.scrollTop = timeline.scrollHeight;
+}
+
+// Re-pin whenever the feed's height changes while following — this both keeps
+// the tail in view on live appends and absorbs the post-replay settling as
+// content-visibility placeholders above resolve to their real heights.
+new ResizeObserver(() => {
+  if (state.following) pinBottom();
+}).observe(feed);
+
+// Input events only timestamp the intent — the scroll they cause is applied
+// asynchronously, so the follow state is decided by the scroll events that
+// land inside the intent window, when the position is real. Scrollbar drags
+// have no repeating input event, so a held pointer keeps the window open.
+let lastIntent = 0;
+function noteIntent() { lastIntent = performance.now(); }
+let pointerHeld = false;
+timeline.addEventListener("wheel", noteIntent, { passive: true });
+timeline.addEventListener("touchmove", noteIntent, { passive: true });
+window.addEventListener("keydown", noteIntent);
+timeline.addEventListener("pointerdown", () => { pointerHeld = true; noteIntent(); });
+window.addEventListener("pointerup", () => { pointerHeld = false; });
+
+timeline.addEventListener("scroll", () => {
+  if (!pointerHeld && performance.now() - lastIntent > 400) {
+    return; // a layout shift or our own pin — never the user's doing
+  }
+  const atBottom =
+    timeline.scrollTop + timeline.clientHeight >= timeline.scrollHeight - 24;
+  if (atBottom !== state.following) {
+    state.following = atBottom;
+    renderMode();
+  }
+});
+
+followBtn.addEventListener("click", () => {
+  state.following = true;
+  pinBottom();
+  const last = sidebar.lastElementChild;
+  if (last) {
+    setActive(last);
+    sidebar.scrollTop = sidebar.scrollHeight;
+  }
+  renderMode();
+  timeline.focus();
+});
+
+function renderMode() {
+  followBtn.classList.remove("paused", "dead");
+  if (!state.connected) {
+    followBtn.classList.add("dead");
+    followBtn.textContent = "○ disconnected";
+    followBtn.title = "tc has gone away — retrying";
+  } else if (state.following) {
+    followBtn.textContent = "● live";
+    followBtn.title = "following the tail";
+  } else {
+    followBtn.classList.add("paused");
+    followBtn.textContent = "❚❚ paused — click to follow";
+    followBtn.title = "jump to the newest message";
+  }
+}
+
+// --- signals ----------------------------------------------------------------
+
+function setMeter(d) {
+  const unit = d === 1 ? "turn" : "turns";
+  if (d >= state.threshold) {
+    meterEl.textContent = `⚠ brake-drought: ${d} ${unit} — glance / fresh eyes?`;
+    meterEl.className = "warn";
+  } else {
+    meterEl.textContent = `brake-drought: ${d} ${unit}`;
+    meterEl.className = "";
+  }
+}
+
+// Wrap doom-word matches in <mark>, walking text nodes so the HTML structure
+// itself is never regexed. Each node's text is escaped before the marks are
+// spliced in; the phrases are plain words (checked against the defaults), so
+// they cannot collide with entity spellings like &amp;.
+function highlightDoom(root) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (const node of nodes) {
+    const hit = state.doom.some(re => {
+      re.lastIndex = 0;
+      return re.test(node.nodeValue);
+    });
+    if (!hit) continue;
+    let html = escapeHTML(node.nodeValue);
+    for (const re of state.doom) {
+      re.lastIndex = 0;
+      html = html.replace(re, m => "<mark>" + m + "</mark>");
+    }
+    const span = document.createElement("span");
+    span.innerHTML = html;
+    node.replaceWith(span);
+  }
+}
+
+function escapeHTML(s) {
+  return s.replace(/[&<>"]/g,
+    c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+</script>
+</body>
+</html>

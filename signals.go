@@ -1,6 +1,9 @@
 package main
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+)
 
 // Baked-in defaults so tc is useful the instant it runs. The config file
 // extends/overrides these; it is never required.
@@ -46,6 +49,21 @@ func newMatcher(phrases []string) *matcher {
 		}
 	}
 	return m
+}
+
+// jsSources exports the compiled patterns for the browser (tc --web), keeping
+// the word lists single-source. Go's inline "(?i)" flag is not JavaScript
+// regex syntax, so it is stripped and the client compiles with the "i" flag
+// instead. Everything else newMatcher builds (QuoteMeta escapes, \b word
+// boundaries) is valid in both engines — provided the client does NOT use
+// JavaScript's "u" flag, which rejects identity escapes like \! that
+// QuoteMeta can produce.
+func (m *matcher) jsSources() []string {
+	srcs := make([]string, 0, len(m.pats))
+	for _, re := range m.pats {
+		srcs = append(srcs, strings.TrimPrefix(re.String(), "(?i)"))
+	}
+	return srcs
 }
 
 func (m *matcher) matchesAny(text string) bool {

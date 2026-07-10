@@ -52,6 +52,8 @@ Run it in (or pointed at) a project you're running Claude Code in:
 tc                       # watch the current directory's newest session
 tc --dir /path/to/proj   # watch a specific project
 tc --print               # dump the timeline to stdout and exit (no TUI)
+tc --web                 # serve the timeline to your browser instead
+tc --web --port 9000     # ... on a port of your choosing (default 8467)
 ```
 
 `tc` follows the newest session log for the project and **re-targets
@@ -72,6 +74,30 @@ automatically** if you start a fresh session.
 message as it lands. The instant you navigate back to read history, it stops
 following and **never yanks the view to the bottom** when a new message
 arrives — like `less +F`. Press `a` to rejoin the tail.
+
+## Web mode (`--web`)
+
+For actually *reading* a long session, the browser beats a terminal pane:
+
+```bash
+tc --web
+```
+
+serves the same timeline at `http://127.0.0.1:8467/` (the port is "TC" in
+ASCII; `--port` to change it), prints the URL, and auto-opens your browser.
+The sidebar lists every message — click one to jump to it in the flowing
+timeline, then scroll freely for context. Markdown, code blocks and tables are
+properly rendered, and edits appear as red/green diffs.
+
+Everything else carries over: live SSE updates with the same never-yank
+scroll-lock (scroll up to pause, scroll to the bottom — or click the follow
+button — to rejoin the tail), the brake-drought meter and its caveat in the
+header, doom-words highlighted inline, and automatic re-target (the page
+reloads itself when a fresh session starts). A dropped connection (laptop
+sleep) resumes where it left off rather than duplicating the timeline.
+
+The page is embedded in the binary and served on loopback only — no external
+assets, no network, nothing to install.
 
 ## The signals
 

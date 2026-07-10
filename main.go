@@ -14,6 +14,8 @@ func main() {
 	fs := flag.NewFlagSet("tc", flag.ContinueOnError)
 	dir := fs.String("dir", "", "project directory to watch (default: current directory)")
 	printMode := fs.Bool("print", false, "print the timeline to stdout and exit (no TUI)")
+	webMode := fs.Bool("web", false, "serve the timeline to a browser instead of the TUI")
+	port := fs.Int("port", 8467, `port for --web (8467 is "TC" in ASCII)`)
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		os.Exit(2)
 	}
@@ -48,6 +50,14 @@ func main() {
 		// A broken config shouldn't stop the watcher — warn and use defaults.
 		fmt.Fprintln(os.Stderr, "tc: ignoring config:", err)
 		cfg = Config{}
+	}
+
+	if *webMode {
+		if err := runWeb(cwd, path, cfg, *port); err != nil {
+			fmt.Fprintln(os.Stderr, "tc:", err)
+			os.Exit(1)
+		}
+		return
 	}
 
 	p := tea.NewProgram(newModel(cwd, path, cfg), tea.WithAltScreen())

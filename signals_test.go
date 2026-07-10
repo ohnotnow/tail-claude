@@ -100,6 +100,23 @@ func TestBrakeDrought(t *testing.T) {
 	})
 }
 
+func TestJSSources(t *testing.T) {
+	m := newMatcher([]string{"wait", "the good news is", "🎉"})
+	got := m.jsSources()
+	want := []string{`\bwait\b`, `\bthe good news is\b`, `🎉`}
+	if len(got) != len(want) {
+		t.Fatalf("jsSources() = %q, want %q", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("jsSources()[%d] = %q, want %q", i, got[i], want[i])
+		}
+		if strings.Contains(got[i], "(?i)") {
+			t.Errorf("jsSources()[%d] = %q still contains the Go-only (?i) flag", i, got[i])
+		}
+	}
+}
+
 func TestHighlightWrapsMatches(t *testing.T) {
 	m := newMatcher([]string{"all green"})
 	out := m.highlight("the build is all green now")
