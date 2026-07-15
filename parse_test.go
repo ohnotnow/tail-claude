@@ -12,6 +12,8 @@ func TestEncodeProjectPath(t *testing.T) {
 		{"dotted path (.claude)", "/Users/test-user/.claude", "-Users-test-user--claude"},
 		{"dotted nested", "/Users/test-user/.claude/skills/skill-creator", "-Users-test-user--claude-skills-skill-creator"},
 		{"hyphens preserved", "/Users/test-user/Documents/code/claude-bumblebee", "-Users-test-user-Documents-code-claude-bumblebee"},
+		{"underscores flattened", "/Users/test-user/Documents/code/llm_biases", "-Users-test-user-Documents-code-llm-biases"},
+		{"spaces flattened", "/Users/test-user/Documents/code/my project", "-Users-test-user-Documents-code-my-project"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

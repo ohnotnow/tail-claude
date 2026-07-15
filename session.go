@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -77,13 +78,15 @@ func loadMessages(path string) ([]Message, error) {
 // encodeProjectPath turns an absolute project path into the directory name
 // Claude Code uses under ~/.claude/projects/.
 //
-// VERIFIED 2026-06-30 against real session dirs: both '/' AND '.' are replaced
-// with '-' (e.g. /Users/test-user/.claude -> -Users-test-user--claude). The PRD's
-// "every / replaced by -" was incomplete; a dotted path would not be found
-// under the documented rule.
+// VERIFIED 2026-07-15 against real session dirs: every non-alphanumeric
+// character is replaced with '-', not just '/' and '.' (a project named
+// llm_biases lives under -Users-...-llm-biases). All ~60 dirs on disk contain
+// only [A-Za-z0-9-].
 func encodeProjectPath(abs string) string {
-	return strings.NewReplacer("/", "-", ".", "-").Replace(abs)
+	return nonAlnum.ReplaceAllString(abs, "-")
 }
+
+var nonAlnum = regexp.MustCompile(`[^a-zA-Z0-9]`)
 
 // projectDir returns ~/.claude/projects/{encoded-cwd}.
 func projectDir(cwd string) (string, error) {
