@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -16,6 +17,8 @@ func main() {
 	printMode := fs.Bool("print", false, "print the timeline to stdout and exit (no TUI)")
 	webMode := fs.Bool("web", false, "serve the timeline to a browser instead of the TUI")
 	port := fs.Int("port", 8467, `port for --web (8467 is "TC" in ASCII)`)
+	speak := fs.Bool("speak", false, "read Claude's new prose aloud by piping it to "+speakCommand)
+	blether := fs.Bool("blether", false, "like --speak, but leave Claude's final reply to the blether Stop hook")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		os.Exit(2)
 	}
@@ -50,6 +53,14 @@ func main() {
 		// A broken config shouldn't stop the watcher — warn and use defaults.
 		fmt.Fprintln(os.Stderr, "tc: ignoring config:", err)
 		cfg = Config{}
+	}
+
+	if *speak || *blether {
+		if _, err := exec.LookPath(speakCommand); err != nil {
+			fmt.Fprintf(os.Stderr, "tc: --speak needs %s on your PATH: %v\n", speakCommand, err)
+			os.Exit(1)
+		}
+		go speakLoop(cwd, path, *blether, sayAloud)
 	}
 
 	if *webMode {

@@ -55,7 +55,16 @@ tc --dir /path/to/proj   # watch a specific project
 tc --print               # dump the timeline to stdout and exit (no TUI)
 tc --web                 # serve the timeline to your browser instead
 tc --web --port 9000     # ... on a port of your choosing (default 8467)
+tc --speak               # also read Claude's new prose aloud (works with --web too)
 ```
+
+`--speak` pipes each new assistant message (prose only, no tool calls) to
+`readaloud` on your PATH, one at a time. It starts from the end of the session,
+so the backlog isn't read out.
+
+`tc --blether` is the same, but skips Claude's final reply of each turn (the one
+the Stop hook fires on), for when a Stop hook like blether is already reading
+that out.
 
 `tc` follows the newest session log for the project and **re-targets
 automatically** if you start a fresh session.

@@ -41,6 +41,10 @@ type Message struct {
 	Timestamp time.Time  // already converted to local time
 	Text      string     // surfaced prose (empty for tool events)
 	Tool      *ToolEvent // non-nil iff this entry is a surfaced tool action
+	// StopReason is the API stop_reason of the assistant response this came
+	// from: "tool_use" for commentary mid-turn, "end_turn" for the final reply
+	// (the one Claude Code's Stop hook fires on). Empty for user messages.
+	StopReason string
 }
 
 // surfacedTools is the NARROW set: the file-mutating tools whose action vanishes
@@ -57,7 +61,8 @@ type rawLine struct {
 }
 
 type rawMessage struct {
-	Content json.RawMessage `json:"content"` // string OR []block — handled below
+	Content    json.RawMessage `json:"content"`     // string OR []block — handled below
+	StopReason string          `json:"stop_reason"` // assistant only
 }
 
 type rawBlock struct {
@@ -141,10 +146,11 @@ func assistantMessages(rl rawLine) []Message {
 	var out []Message
 	if len(textParts) > 0 {
 		out = append(out, Message{
-			UUID:      rl.UUID,
-			Role:      RoleAssistant,
-			Timestamp: ts,
-			Text:      strings.Join(textParts, "\n"),
+			UUID:       rl.UUID,
+			Role:       RoleAssistant,
+			Timestamp:  ts,
+			Text:       strings.Join(textParts, "\n"),
+			StopReason: rl.Message.StopReason,
 		})
 	}
 	return append(out, tools...)
