@@ -59,11 +59,11 @@ tc --speak               # also read Claude's new prose aloud (works with --web 
 ```
 
 `--speak` pipes each new assistant message (prose only, no tool calls) to
-`readaloud` on your PATH, one at a time. It starts from the end of the session,
+[readaloud](https://github.com/ohnotnow/readaloud) on your PATH, one at a time. It starts from the end of the session,
 so the backlog isn't read out.
 
 `tc --blether` is the same, but skips Claude's final reply of each turn (the one
-the Stop hook fires on), for when a Stop hook like blether is already reading
+the Stop hook fires on), for when a Stop hook like [blether](https://github.com/ohnotnow/blether) is already reading
 that out.
 
 `tc` follows the newest session log for the project and **re-targets
